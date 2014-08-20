@@ -20,7 +20,7 @@ public class CSVFileHanlder {
 	
 	private String filename;
 	private BufferedReader fr;
-	private FoodMap fMap;
+	public FoodMap fMap;
 	
 	
 	public CSVFileHanlder(String filename) {
@@ -39,7 +39,7 @@ public class CSVFileHanlder {
 		}
 	}
 	
-	public void readFile(){
+	public boolean readFile(){
 		if(this.openFile()){
 			try {
 				int linenum = 0;
@@ -76,12 +76,19 @@ public class CSVFileHanlder {
 						}
 					}
 				}
+				return true;
 			} catch (IOException exception) {
 				exception.printStackTrace();
+				return false;
 			}
 		}else{
 			System.out.println("File open error!");
+			return false;
 		}
+	}
+	
+	public void closeFile() throws IOException{
+		this.fr.close();
 	}
 
 	public static void main(String[] args) {
