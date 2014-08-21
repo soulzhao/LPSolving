@@ -95,6 +95,7 @@ public class LPSolver {
 	            GLPK.delete_doubleArray(val);
 
 	            // Define objective
+	            // for the objective definition: refer http://www.doc88.com/p-09232355056.html for conversion from min{max[abs1, abs2 ... absn]}
 	            GLPK.glp_set_obj_name(lp, "z");
 	            GLPK.glp_set_obj_dir(lp, GLPKConstants.GLP_MIN);
 	            //GLPK.glp_set_obj_coef(lp, 0, 1.); // constant set at pos 0
