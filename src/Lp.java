@@ -80,6 +80,7 @@ public class Lp {
             GLPK.delete_doubleArray(val);
 
             // Define objective
+            //	Minimize z = -.5 * x1 + .5 * x2 - x3 + 1            
             GLPK.glp_set_obj_name(lp, "z");
             GLPK.glp_set_obj_dir(lp, GLPKConstants.GLP_MIN);
             GLPK.glp_set_obj_coef(lp, 0, 1.);

@@ -29,8 +29,8 @@ public class LPSolver {
 	            GLPK.glp_set_prob_name(lp, "food Problem");
 	            
 	            String [] flst = csvfHanlder.fMap.getFoods();
-	            // Define columns -- number of food
-	            GLPK.glp_add_cols(lp, flst.length);
+	            // Define columns -- number of food£¬ £¬ + 1  for the max virtual x0
+	            GLPK.glp_add_cols(lp, flst.length + 1);
 	            for(int i = 1; i <= flst.length; i++){
 	            	 GLPK.glp_set_col_name(lp, i, flst[i - 1]);
 	            	 GLPK.glp_set_col_kind(lp, i, GLPKConstants.GLP_CV);
@@ -38,24 +38,31 @@ public class LPSolver {
 	            			 csvfHanlder.fMap.getFoodRangeMin(flst[i - 1]), 
 	            			 csvfHanlder.fMap.getFoodRangeMax(flst[i - 1])); // Double bounded
 	            }
+	            
+	            // the virtual X0
+	           	GLPK.glp_set_col_name(lp, flst.length + 1, "X0");
+	           	GLPK.glp_set_col_kind(lp, flst.length + 1, GLPKConstants.GLP_CV);
+	           	GLPK.glp_set_col_bnds(lp, flst.length + 1, GLPKConstants.GLP_LO, 0, 0);	            
+	            
 
 	            // Create constraints
 	            
 	            // Allocate memory
-	            ind = GLPK.new_intArray(flst.length);
-	            val = GLPK.new_doubleArray(flst.length);
+	            ind = GLPK.new_intArray(flst.length + 1);
+	            val = GLPK.new_doubleArray(flst.length + 1);
 
 	            String [] clst = csvfHanlder.fMap.getCategories();
 	            // Create rows -- the number of categories
-	            GLPK.glp_add_rows(lp, clst.length);
+	            GLPK.glp_add_rows(lp, clst.length * 2);
 	            
+	            // this is for the sum of x1 ... xn
 	            for(int i = 1; i <= clst.length; i++){
 		            // Set row details
 	            	String cName = clst[i - 1];
 		            GLPK.glp_set_row_name(lp, i, cName);
 		            float target = csvfHanlder.fMap.getCategoryTarget(cName);
 		            float range = csvfHanlder.fMap.getCategoryRange(cName);
-		            GLPK.glp_set_row_bnds(lp, i, GLPKConstants.GLP_DB, (1 - range) * target, (1 + range) * target);
+		            GLPK.glp_set_row_bnds(lp, i, GLPKConstants.GLP_DB, (1 - range) * target, target); //  (1 - range)*T <= p <= T
 		            
 		            for(int j = 1; j <= flst.length; j++){
 			            GLPK.intArray_setitem(ind, j, j);
@@ -64,21 +71,37 @@ public class LPSolver {
 		         
 		            GLPK.glp_set_mat_row(lp, i, flst.length, ind, val); // set the i row of the matrix, every time I set flst.length numbers
 	            }
+	            
+	            // this is for the sum of x1 ... xn plus X0
+	            for(int i = 1; i <= clst.length; i++){
+		            // Set row details
+	            	String cName = clst[i - 1];
+		            GLPK.glp_set_row_name(lp, i, "Target" + cName);
+		            float target = csvfHanlder.fMap.getCategoryTarget(cName);
+		            GLPK.glp_set_row_bnds(lp, i, GLPKConstants.GLP_LO, target, 0); //  T <= u
+		            
+		            for(int j = 1; j <= flst.length; j++){
+			            GLPK.intArray_setitem(ind, j, j);
+			            GLPK.doubleArray_setitem(val, j, csvfHanlder.fMap.getFoodCategoryValue(flst[j - 1], cName));
+		            }
+		            GLPK.intArray_setitem(ind, flst.length + 1, flst.length + 1);
+		            GLPK.doubleArray_setitem(val, flst.length + 1, 1);
+		         
+		            GLPK.glp_set_mat_row(lp, i, flst.length + 1, ind, val); // set the i row of the matrix, every time I set flst.length numbers
+	            }
 
 	            // Free memory
 	            GLPK.delete_intArray(ind);
 	            GLPK.delete_doubleArray(val);
 
 	            // Define objective
-//	            GLPK.glp_set_obj_name(lp, "z");
-//	            GLPK.glp_set_obj_dir(lp, GLPKConstants.GLP_MIN);
-//	            GLPK.glp_set_obj_coef(lp, 0, 1.);
-//	            GLPK.glp_set_obj_coef(lp, 1, -.5);
-//	            GLPK.glp_set_obj_coef(lp, 2, .5);
-//	            GLPK.glp_set_obj_coef(lp, 3, -1);
-
-	            // Write model to file
-	            // GLPK.glp_write_lp(lp, null, "lp.lp");
+	            GLPK.glp_set_obj_name(lp, "z");
+	            GLPK.glp_set_obj_dir(lp, GLPKConstants.GLP_MIN);
+	            //GLPK.glp_set_obj_coef(lp, 0, 1.); // constant set at pos 0
+	            for(int i = 1; i < flst.length; i++){
+	            	GLPK.glp_set_obj_coef(lp, i, 0);
+	            }
+	            GLPK.glp_set_obj_coef(lp, flst.length + 1, 1);
 
 	            // Solve model
 	            parm = new glp_smcp();
@@ -87,7 +110,7 @@ public class LPSolver {
 
 	            // Retrieve solution
 	            if (ret == 0) {
-	            	
+	            	write_lp_solution(lp);
 	            } else {
 	                System.out.println("The problem could not be solved");
 	            }
@@ -101,5 +124,30 @@ public class LPSolver {
 		}
 		csvfHanlder.closeFile();
 	}
+	
+    /**
+     * write simplex solution
+     * @param lp problem
+     */
+    static void write_lp_solution(glp_prob lp) {
+        int i;
+        int n;
+        String name;
+        double val;
+
+        name = GLPK.glp_get_obj_name(lp);
+        val = GLPK.glp_get_obj_val(lp);
+        System.out.print(name);
+        System.out.print(" = ");
+        System.out.println(val);
+        n = GLPK.glp_get_num_cols(lp);
+        for (i = 1; i <= n; i++) {
+            name = GLPK.glp_get_col_name(lp, i);
+            val = GLPK.glp_get_col_prim(lp, i);
+            System.out.print(name);
+            System.out.print(" = ");
+            System.out.println(val);
+        }
+    }	
 
 }
