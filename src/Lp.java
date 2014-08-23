@@ -92,6 +92,7 @@ public class Lp {
             // GLPK.glp_write_lp(lp, null, "lp.lp");
 
             // Solve model
+            System.out.println("============================");
             parm = new glp_smcp();
             GLPK.glp_init_smcp(parm);
             ret = GLPK.glp_simplex(lp, parm);

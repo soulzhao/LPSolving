@@ -22,15 +22,18 @@ public class FoodMap {
 		ctgMap = new HashMap<String, Category>();
 	}
 	
-	public String[] getFoods(){
-		return (String[]) fMap.keySet().toArray();
+	public Object[] getFoods(){
+		return fMap.keySet().toArray();
 	}
 	
-	public String[] getCategories(){
-		return (String[]) ctgMap.keySet().toArray();
+	public Object[] getCategories(){
+		return ctgMap.keySet().toArray();
 	}
 	
 	public void setFoodRangeMin(String food, float min){
+		if(!frMap.containsKey(food)){
+			frMap.put(food, new FoodRange(0, 0));
+		}
 		frMap.get(food).setMin(min);
 	}
 	
@@ -39,6 +42,9 @@ public class FoodMap {
 	}	
 	
 	public void setFoodRangeMax(String food, float max){
+		if(!frMap.containsKey(food)){
+			frMap.put(food, new FoodRange(0, 0));
+		}
 		frMap.get(food).setMax(max);
 	}
 	
@@ -47,9 +53,13 @@ public class FoodMap {
 	}	
 	
 	public void addFoodCategoryValue(String food, String category, float val){
-		Map t = new HashMap();
-		t.put(category, Float.valueOf(val));
-		this.fMap.put(food, t);
+		if(!fMap.containsKey(food)){
+			Map t = new HashMap();
+			t.put(category, Float.valueOf(val));
+			this.fMap.put(food, t);
+		}else{
+			this.fMap.get(food).put(category, val);
+		}
 	}
 	
 	public float getFoodCategoryValue(String food, String category){
